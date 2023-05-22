@@ -1,0 +1,19 @@
+.App {
+  text-align: center;
+  justify-content: center;
+  color: brown;
+  border: 2px solid rgb(103, 95, 95);
+  border-radius: 12px;
+  padding: 5px;
+  background: rgb(210, 208, 208);
+  
+}
+
+.table{
+  justify-content: center;
+}
+
+.th{
+  color: red;
+}
+
