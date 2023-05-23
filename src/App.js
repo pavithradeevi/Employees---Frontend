@@ -1,13 +1,10 @@
 
-
 import React, { useEffect, useState } from 'react';
 import socketIOClient from 'socket.io-client';
 import "./App.css";
-import DeleteIcon from '@mui/icons-material/Delete';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 
-
-const ENDPOINT = 'http://localhost:3001';
+const ENDPOINT = 'http://localhost:8800';
 
 function App() {
   const [employees, setEmployees] = useState([]);
@@ -15,49 +12,22 @@ function App() {
   useEffect(() => {
     const socket = socketIOClient(ENDPOINT);
 
-    // Fetch employees initially
+   
     fetchEmployees();
 
-    // Listen for socket event to update employees
-    socket.on('updateEmployees', fetchEmployees);
+    
+    socket.on('updateEmployees', (updatedEmployee) => {
+      updateEmployeeState(updatedEmployee);
+    });
 
     return () => {
       socket.disconnect();
     };
   }, []);
 
-  const addEmployee = async () => {
-    try {
-
-      const newEmployee = {
-        name: "",
-        salary: ""
-      };
-      const response = await fetch('http://localhost:3001/employees', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newEmployee),
-        
-      });
-  
-
-  if (response.ok) {
-    
-    alert('Space added successfully');
-    fetchEmployees();
-  } else {
-    console.error('Error adding employee:', response.status);
-  }
-} catch (error) {
-  console.error('Error adding employee:', error);
-}
-};
-
   const fetchEmployees = async () => {
     try {
-      const response = await fetch('http://localhost:3001/employees');
+      const response = await fetch('http://localhost:8800/employees');
       const data = await response.json();
       setEmployees(data);
     } catch (error) {
@@ -65,18 +35,43 @@ function App() {
     }
   };
 
+  const addEmployee = async () => {
+    try {
+      const newEmployee = {
+        name: "",
+        salary: ""
+      };
+
+      const response = await fetch('http://localhost:8800/employees', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newEmployee),
+      });
+
+      if (response.ok) {
+        alert('Employee added successfully');
+        fetchEmployees();
+      } else {
+        console.error('Error adding employee:', response.status);
+      }
+    } catch (error) {
+      console.error('Error adding employee:', error);
+    }
+  };
+
   const updateEmployee = async (id, updatedEmployee) => {
     try {
-      await fetch(`http://localhost:3001/employees/${id}`, {
+      await fetch(`http://localhost:8800/employees/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(updatedEmployee),
       });
-  
-      // Employee updated successfully, show alert message
-      // alert('Employee updated successfully');
+
+     
     } catch (error) {
       console.error('Error updating employee:', error);
     }
@@ -90,6 +85,9 @@ function App() {
       return employee;
     });
     setEmployees(updatedEmployees);
+
+   
+    updateEmployee(id, { name: e.target.value });
   };
 
   const handleSalaryChange = (id, e) => {
@@ -100,6 +98,9 @@ function App() {
       return employee;
     });
     setEmployees(updatedEmployees);
+
+    // Update the employee on the server
+    updateEmployee(id, { salary: parseInt(e.target.value) });
   };
 
   const handleBlur = (id, updatedEmployee) => {
@@ -108,24 +109,34 @@ function App() {
 
   const handleDelete = async (id) => {
     try {
-      await fetch(`http://localhost:3001/employees/${id}`, {
+      await fetch(`http://localhost:8800/employees/${id}`, {
         method: 'DELETE',
       });
-  
-      // Employee deleted successfully, show alert message
+
+      
       alert('Employee deleted successfully');
-  
-      // Refresh the employee list
+
+      
       fetchEmployees();
     } catch (error) {
       console.error('Error deleting employee:', error);
     }
   };
 
+  const updateEmployeeState = (updatedEmployee) => {
+    const updatedEmployees = employees.map((employee) => {
+      if (employee._id === updatedEmployee._id) {
+        return updatedEmployee;
+      }
+      return employee;
+    });
+    setEmployees(updatedEmployees);
+  };
+
   return (
     <div className='App'>
       <h1>Employee Salary Dashboard</h1>
-      <button onClick={addEmployee}>Add Employee</button> 
+      <button onClick={addEmployee}>Add Employee</button>
       <table className='table'>
         <thead>
           <tr>
@@ -134,33 +145,31 @@ function App() {
           </tr>
         </thead>
         <tbody>
-        {employees.map((employee) => (
-  <tr key={employee._id}>
-    <td className='td'>
-      <input
-        type="text"
-        value={employee.name}
-        onChange={(e) => handleNameChange(employee._id, e)}
-        onBlur={() => handleBlur(employee._id, { name: employee.name })}
-      />
-    </td>
-    <td className='td'>
-      <input
-        type="number"
-        value={employee.salary}
-        onChange={(e) => handleSalaryChange(employee._id, e)}
-        onBlur={() => handleBlur(employee._id, { salary: employee.salary })}
-      />
-    </td>
-    <td>
-      <button onClick={() => handleDelete(employee._id)}>
-        {/* <DeleteIcon /> */}
-        <DeleteOutlineIcon/>
-
-      </button>
-    </td>
-  </tr>
-))}
+          {employees.map((employee) => (
+            <tr key={employee._id}>
+              <td className='td'>
+                <input
+                  type="text"
+                  value={employee.name}
+                  onChange={(e) => handleNameChange(employee._id, e)}
+                  onBlur={() => handleBlur(employee._id, { name: employee.name })}
+                />
+              </td>
+              <td className='td'>
+                <input
+                  type="number"
+                  value={employee.salary}
+                  onChange={(e) => handleSalaryChange(employee._id, e)}
+                  onBlur={() => handleBlur(employee._id, { salary: employee.salary })}
+                />
+              </td>
+              <td>
+                <button onClick={() => handleDelete(employee._id)}>
+                  <DeleteOutlineIcon />
+                </button>
+              </td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>
